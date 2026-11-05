@@ -8,9 +8,10 @@ from the tarball built here.
 
 - The upstream repo assumes macOS: covers are HEIC and converted with `sips`; there is
   no Windows path. Without a fix every poster is a placeholder glyph.
-- The upstream entry points are intrusive for daily use: a permanent text button in the
-  sidebar foot (it crowds the Remote button) and an invitation card above the composer
-  while the agent runs.
+- The upstream entry points are intrusive and redundant for daily use: a permanent text
+  button in the sidebar foot (it crowds the Remote button), an invitation card above the
+  composer while the agent runs, and a duplicate entry card on the right sidebar's guide
+  page.
 - Installing straight from GitHub does not work here (schannel/TLS failures for `git` and
   `pnpm`; only the GitHub API is reachable from Node), so a local build/install step was
   needed anyway.
@@ -30,7 +31,9 @@ Needs the HEIF Image Extension installed (`Microsoft.HEIFImageExtension`).
   label beside Remote.
 - New `sidebar.panellist.actions` registration: one row 「短剧」 in the left sidebar's
   全局面板 → 更多 menu, rendered with the product's own `MenuItemButton`.
-- `sidebar.right.pane.tab` and the tab guide card are unchanged.
+- The right sidebar guide card is gone too: the tab type registers without `guide`,
+  so the right column only ever holds the player once the menu row opens it.
+  `sidebar.right.pane.tab` is unchanged (it is what draws the player).
 
 ### Composer invitation removed (`client.js`)
 

@@ -32,8 +32,6 @@ window.__ModuleLoader__.load({
       'tab.title': '摸鱼短剧',
       'button.label': '短剧',
       'button.tooltip': '打开摸鱼短剧',
-      'guide.title': '摸鱼短剧',
-      'guide.description': '在边栏里看一部短剧，陪 Agent 一起干活',
       'player.refresh': '换一批',
       'player.more': '更多…',
       'player.back': '返回列表',
@@ -77,8 +75,6 @@ window.__ModuleLoader__.load({
       'tab.title': 'Drama Break',
       'button.label': 'Drama',
       'button.tooltip': 'Open Drama Break',
-      'guide.title': 'Drama Break',
-      'guide.description': 'Watch a short drama beside the Agent while it works',
       'player.refresh': 'Refresh',
       'player.more': 'More…',
       'player.back': 'Back to list',
@@ -249,7 +245,7 @@ window.__ModuleLoader__.load({
 @keyframes hg-pulse{0%,100%{opacity:1}50%{opacity:.25}}
 `
 
-    /** Decorative mark shared by the tab, the button and the guide. */
+    /** Decorative mark shared by the tab and the More-menu row. */
     /** Small line icons for the player chrome. */
     function Icon({ name, size = 16 }) {
       const paths = {
@@ -1302,15 +1298,6 @@ window.__ModuleLoader__.load({
                 kind: KIND,
                 multiple: false,
                 title: () => translate('tab.title'),
-                guide: [
-                  {
-                    id: 'hongguo',
-                    order: 30,
-                    title: () => translate('guide.title'),
-                    description: () => translate('guide.description'),
-                    icon: Mark,
-                  },
-                ],
               }),
             'hongguo: tab type',
           )
