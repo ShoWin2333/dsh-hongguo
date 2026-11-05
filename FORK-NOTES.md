@@ -35,9 +35,10 @@ Needs the HEIF Image Extension installed (`Microsoft.HEIFImageExtension`).
 ### Composer invitation removed (`client.js`)
 
 - The "Agent 干活中，刷一集？" dock card is gone (no chips, no dismiss button).
-- The `conversation.input.dock` seat stays, but now renders a headless watcher
-  (`DockWatcher`) that only keeps the "a finished task pauses the playing drama"
-  behavior.
+- Nothing is registered in `conversation.input.dock` at all: the plugin no longer
+  observes session status, so a finished task does not pause or touch playback.
+  The whole pause-all control path (`players`, pause control, `pausedByFinish`
+  notice) was deleted with it.
 - `autoPrompt` remains in the config schema for compatibility; it no longer has a
   visible effect.
 

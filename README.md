@@ -5,7 +5,7 @@
 这是 [frostming/dsh-hongguo](https://github.com/frostming/dsh-hongguo) 的个人 fork，代码与上游同源，改动集中在我们自己用起来不顺手的地方，细节见 [FORK-NOTES.md](FORK-NOTES.md)：
 
 - **入口**：去掉左侧栏底部的按钮，改到「全局面板 → 更多 → 短剧」一行；右侧边栏标签页与引导卡不变。
-- **去掉输入框上方的等待提示浮条**，但保留「任务结束自动暂停正在播的短剧」。
+- **不再打扰播放**：去掉输入框上方的等待提示浮条，也不再在任务结束时自动暂停短剧——插件完全不碰 composer，播放只受你自己的操作控制。
 - **Windows 封面**：上游用 macOS 的 `sips` 转 HEIC 封面，fork 在非 macOS 上改用 WIC（`cover.ps1`），需要系统装了 HEIF 图像扩展。
 
 数据来自 [openhongguo](https://github.com/beilunyang/openhongguo)（第三方短剧平台的非官方 SDK，匿名设备、无需登录）。请仅用于个人学习与研究，内容版权归权利人所有。上游仓库未声明 LICENSE，本 fork 仅原样保存并注明来源。
@@ -29,13 +29,12 @@
 | 剧集列表 | 按面板宽度自适应：每行 6 / 4 / 3 / 2 部，每页 12 部，`换一批` 翻到下一页 |
 | 播放历史 | 记住每部剧看到第几集、第几秒；`观看历史` 按钮点开后一键续播，可单条移除 |
 | 播放器 | 画面内控制条、倍速（1–2×）、全屏、自动连播下一集、续播提示 |
-| 任务完成 | Agent 从运行变为空闲时自动暂停正在播放的短剧，并在画面上提示（隐藏的 dock watcher 负责，不再有可见浮条） |
 | 侧边栏引导页 | 一个 `摸鱼短剧` 入口卡片 |
 
 ## 结构
 
 - **Host 半（`index.js`）**：加载 openhongguo SDK、维护匿名设备档案，提供同源路由 `/api/hongguo/{feed,series,play,media,stream,config,running}`、`/api/hongguo/cover` 与 `/api/hongguo/vendor`。启动时预先拉取剧集列表。CDN 只提供 HEIC 封面：macOS 用 `sips` 转 JPEG，其它平台用 `cover.ps1`（WIC / HEIF 图像扩展）转换并缓存。
-- **Client 半（`client.js`）**：注册侧边栏标签页类型 `hongguo`、`sidebar.panellist.actions` 里的 More 菜单行，以及 `conversation.input.dock` 里一个不渲染任何内容的 watcher。
+- **Client 半（`client.js`）**：注册侧边栏标签页类型 `hongguo`，以及 `sidebar.panellist.actions` 里的一行 More 菜单入口。不注册任何 composer/dock 插槽，也不监听 Agent 会话状态。
 
 ## 播放与解密
 

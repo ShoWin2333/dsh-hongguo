@@ -6,9 +6,9 @@
  * opens it. All network work — search, episodes, play models — stays in the
  * Host half; this module only calls the same-origin routes it serves.
  *
- * Local fork (see FORK-NOTES.md): the foot action and the composer invitation
- * are gone — the More menu row is the only entry, and the dock slot keeps only
- * its headless "a finished task pauses the drama" behavior.
+ * Local fork (see FORK-NOTES.md): the foot action and the composer dock card
+ * are gone — the More menu row is the only entry, and nothing is registered in
+ * the composer at all, so a finished task no longer touches playback.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-hongguo',
@@ -34,14 +34,6 @@ window.__ModuleLoader__.load({
       'button.tooltip': '打开摸鱼短剧',
       'guide.title': '摸鱼短剧',
       'guide.description': '在边栏里看一部短剧，陪 Agent 一起干活',
-      'prompt.title': 'Agent 干活中，刷一集？',
-      'prompt.body': '等待的时间里，挑一部短剧放进右侧边栏，边看边等。',
-      'prompt.chip': '边等边看 · 任务结束自动暂停',
-      'prompt.hint': 'Agent 正在干活，挑一部短剧放到右侧边栏，边看边等。',
-      'prompt.collapse': '收起',
-      'prompt.expand': '展开',
-      'prompt.action': '调出短剧',
-      'prompt.dismiss': '不用了',
       'player.refresh': '换一批',
       'player.more': '更多…',
       'player.back': '返回列表',
@@ -57,8 +49,6 @@ window.__ModuleLoader__.load({
       'player.noMse': '当前浏览器不支持 MediaSource 播放',
       'player.codecHint': '这一集暂时无法解密或解码，可以点重试或换一集。',
       'player.remuxing': '正在把这一集转换成可直接播放的格式…',
-      'player.finished': '任务完成了，先停一下。看完结果再看剧。',
-      'player.resume': '继续播放',
       'player.history': '继续观看',
       'player.historyLine': '第 {n} 集 · {t}',
       'player.historyNew': '还没开始看',
@@ -89,14 +79,6 @@ window.__ModuleLoader__.load({
       'button.tooltip': 'Open Drama Break',
       'guide.title': 'Drama Break',
       'guide.description': 'Watch a short drama beside the Agent while it works',
-      'prompt.title': 'Agent working — squeeze in an episode?',
-      'prompt.body': 'Pick a short drama for the right Sidebar and watch while you wait.',
-      'prompt.chip': 'Watch while you wait · pauses on finish',
-      'prompt.hint': 'The agent is working — park a short drama in the right Sidebar and watch while you wait.',
-      'prompt.collapse': 'Hide',
-      'prompt.expand': 'Show',
-      'prompt.action': 'Open the player',
-      'prompt.dismiss': 'Not now',
       'player.refresh': 'Refresh',
       'player.more': 'More…',
       'player.back': 'Back to list',
@@ -112,8 +94,6 @@ window.__ModuleLoader__.load({
       'player.noMse': 'This browser cannot play through MediaSource',
       'player.codecHint': 'This browser may not decode this episode\'s HEVC video; try another episode.',
       'player.remuxing': 'Preparing this episode for playback…',
-      'player.finished': 'Task finished — paused for you. Resume when ready.',
-      'player.resume': 'Resume',
       'player.history': 'Continue watching',
       'player.historyLine': 'Episode {n} · {t}',
       'player.historyNew': 'Not started',
@@ -199,7 +179,6 @@ window.__ModuleLoader__.load({
 .hg-history-sub{color:var(--dsw-alias-label-secondary);font-size:11px;flex:none;font-variant-numeric:tabular-nums;}
 .hg-history-row .hg-dismiss{color:var(--dsw-alias-label-secondary);}
 .hg-veil .hg-note{color:rgba(255,255,255,.75);max-width:240px;}
-.hg-veil.notice{background:rgba(0,0,0,.6);font-size:13px;line-height:1.5;}
 .hg-big{font-size:30px;font-weight:600;color:#fff;}
 .hg-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .hg-progress{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;}
@@ -265,29 +244,8 @@ window.__ModuleLoader__.load({
 .hg-ep[aria-current="true"]{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-weight:600;}
 .hg-desc{font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary);margin-bottom:12px;}
 
-.hg-foot-action{appearance:none;border:0;background:none;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px;width:100%;}
-.hg-foot-action:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);}
-.hg-foot-action:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;}
-.hg-foot-action .hg-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-.hg-chip{appearance:none;display:flex;align-items:center;gap:6px;margin:0 auto 6px;padding:4px 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;cursor:pointer;}
-.hg-chip:hover{color:var(--dsw-alias-label-primary);}
-.hg-chip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px;}
-.hg-prompt{display:flex;align-items:center;gap:6px;margin:0 auto 6px;padding:4px 6px 4px 10px;width:fit-content;max-width:100%;justify-content:center;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);font-size:12px;color:var(--dsw-alias-label-primary);line-height:1.35;}
-.hg-prompt-body{min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;}
-.hg-prompt-title{font-weight:500;white-space:nowrap;font-size:12px;}
-.hg-prompt-hint{color:var(--dsw-alias-label-secondary);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1;}
-.hg-prompt .hg-picks{margin:0;}
-.hg-prompt .hg-pick{padding:2px 8px;font-size:11px;max-width:104px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;}
-.hg-prompt .hg-btn.primary{padding:4px 10px;font-size:11px;border-radius:6px;}
-.hg-prompt-actions{display:flex;align-items:center;gap:2px;flex:none;}
-.hg-prompt .hg-dismiss{appearance:none;border:0;background:none;color:var(--dsw-alias-label-secondary);cursor:pointer;font:inherit;font-size:14px;line-height:1;padding:2px 4px;border-radius:4px;flex:none;}
-.hg-prompt .hg-dismiss:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-2);}
-
-.hg-picks{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
-.hg-prompt .hg-pick{appearance:none;display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:11px;cursor:pointer;}
-.hg-prompt .hg-pick:hover{border-color:var(--dsw-alias-brand-primary);}
-.hg-prompt .hg-pick.more{color:var(--dsw-alias-label-secondary);}
+.hg-pick{appearance:none;display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:11px;cursor:pointer;}
+.hg-pick:hover{border-color:var(--dsw-alias-brand-primary);}
 @keyframes hg-pulse{0%,100%{opacity:1}50%{opacity:.25}}
 `
 
@@ -524,8 +482,6 @@ window.__ModuleLoader__.load({
       /** Width / height of the current video; portrait until metadata says otherwise. */
       const [aspect, setAspect] = React.useState(9 / 16)
       const [retryKey, setRetryKey] = React.useState(0)
-      /** Paused because the task finished; the element itself is untouched. */
-      const [pausedByFinish, setPausedByFinish] = React.useState(false)
       const [watched, setWatched] = React.useState(() => listHistory())
       const [resumeNotice, setResumeNotice] = React.useState(undefined)
       const videoRef = React.useRef(null)
@@ -717,32 +673,8 @@ window.__ModuleLoader__.load({
       }, [activeSource, retryKey, t])
 
 
-      // Publish this player's pause control while it holds a source: the task
-      // finishing pauses every place a drama can be playing.
-      React.useEffect(() => {
-        if (playback.status !== 'ready' || !activeSource) return undefined
-        const control = {
-          mine: {},
-          pause: () => {
-            const video = videoRef.current
-            try {
-              video?.pause()
-            } catch {
-              // Pausing an element without a source is harmless.
-            }
-            setPausedByFinish(true)
-          },
-        }
-        players.add(control)
-        audioOwner.current = control.mine
-        return () => {
-          players.delete(control)
-          if (audioOwner.current === control.mine) audioOwner.current = null
-        }
-      }, [playback.status, activeSource])
-
       // Switching to a locally rewritten copy keeps the element playing, so it
-      // clears only the media-error state, not the "task finished" notice.
+      // clears only the media-error state, not the playback position.
       React.useEffect(() => {
         setResumeNotice(undefined)
       }, [activeSource])
@@ -810,7 +742,6 @@ window.__ModuleLoader__.load({
         const video = videoRef.current
         if (!video) return
         if (video.paused) {
-          setPausedByFinish(false)
           video.play().catch(() => {})
         } else video.pause()
       }
@@ -1072,15 +1003,6 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', className: 'hg-dismiss', 'aria-label': t('player.close'), onClick: () => setResumeNotice(undefined) }, '\u00d7'),
               )
             : null,
-          pausedByFinish
-            ? h(
-                'div',
-                { className: 'hg-veil notice' },
-                h(Mark, { size: 26 }),
-                h('div', null, t('player.finished')),
-                h('button', { type: 'button', className: 'hg-btn', onClick: togglePlay }, t('player.resume')),
-              )
-            : null,
           playback.status === 'error'
             ? h(
                 'div',
@@ -1275,11 +1197,6 @@ window.__ModuleLoader__.load({
     /** The plugin context, so component handlers reach the sidebar controller. */
     let pluginCtx
 
-    /** Live players, one control per mounted player holding a source. */
-    const players = new Set()
-    /** The player that most recently started, which owns the activity beacon. */
-    const audioOwner = { current: null }
-
     /**
      * Tell the Host which drama this page is showing. Nothing waits on it: the
      * Host keeps the last state for its own surfaces.
@@ -1305,24 +1222,9 @@ window.__ModuleLoader__.load({
 
 
     /**
-     * Pause every playing drama. Called when a task finishes, so the drama
-     * stops on its own instead of talking over the result the user has to
-     * read; every player also shows a short notice explaining why.
-     */
-    function pauseAllDramas() {
-      for (const control of [...players]) {
-        try {
-          control.pause('finished')
-        } catch {
-          // A player mid-teardown has nothing to pause.
-        }
-      }
-    }
-
-    /**
      * The manual entry: one row in the panel list's More menu. It is the only
-     * always-available entrance, so the sidebar foot stays free of a permanent
-     * button; close the menu first, then open the tab.
+     * entrance, so the sidebar foot stays free of a permanent button; close the
+     * menu first, then open the tab.
      */
     function MoreMenuRow({ onDismiss }) {
       const t = useTranslate()
@@ -1341,27 +1243,6 @@ window.__ModuleLoader__.load({
       return MenuItemButton
         ? h(MenuItemButton, row, label)
         : h('button', { type: 'button', className: 'hg-menu-row', onClick: row.onSelect }, label)
-    }
-
-    /**
-     * Headless dock watcher. The composer dock is the only seat that sees
-     * whether this session's agent is running, so the plugin keeps a seat
-     * there to pause a playing drama when a task finishes — but it renders
-     * nothing: no invitation card, no chips, no dismiss button.
-     */
-    function DockWatcher({ sessionId, useSessionStatus }) {
-      const status = useSessionStatus ? useSessionStatus((snapshot) => (sessionId ? snapshot.get(sessionId) : undefined)) : undefined
-      const running = status?.running === true
-      const wasRunning = React.useRef(false)
-      React.useEffect(() => {
-        if (running) {
-          wasRunning.current = true
-        } else if (wasRunning.current) {
-          wasRunning.current = false
-          pauseAllDramas()
-        }
-      }, [running])
-      return null
     }
 
     return {
@@ -1439,14 +1320,9 @@ window.__ModuleLoader__.load({
             return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: TAB_ID }, PlayerBody)
         })
         // The one manual entrance: a row in the panel list's More menu. The
-        // sidebar foot and the composer dock stay free of permanent furniture.
+        // sidebar foot and the composer stay free of permanent furniture.
         ctx.slots.inject('sidebar.panellist.actions', () =>
           ctx.slots.register({ name: 'sidebar.panellist.actions', id: TAB_ID, order: 10 }, MoreMenuRow),
-        )
-        // Headless seat in the composer dock: it keeps observing the session so
-        // a finished task can pause a playing drama, and draws nothing.
-        ctx.slots.inject('conversation.input.dock', () =>
-          ctx.slots.register({ name: 'conversation.input.dock', id: 'hongguo-watch', order: 30 }, DockWatcher),
         )
       },
     }
