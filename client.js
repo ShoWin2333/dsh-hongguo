@@ -2,17 +2,27 @@
  * dsh-hongguo — Client half.
  *
  * Registers one right-Sidebar tab type (`kind: 'hongguo'`) that plays a
- * short drama, a small button in the sidebar foot that opens it, and an
- * ambient prompt under the composer that invites the user to open the player
- * while the agent is running. All network work — search, episodes, play models
- * — stays in the Host half; this module only calls the same-origin routes it
- * serves.
+ * short drama, and one row in the left sidebar's panel-list More menu that
+ * opens it. All network work — search, episodes, play models — stays in the
+ * Host half; this module only calls the same-origin routes it serves.
+ *
+ * Local fork (see FORK-NOTES.md): the foot action and the composer invitation
+ * are gone — the More menu row is the only entry, and the dock slot keeps only
+ * its headless "a finished task pauses the drama" behavior.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-hongguo',
   factory(require) {
     const React = require('react')
     const h = React.createElement
+    // The More-menu row uses the product's own menu row so it joins the menu's
+    // keyboard walk and styling; without primitives it still works.
+    let MenuItemButton
+    try {
+      MenuItemButton = require('@deepseek-ai/dsh-client-ui-primitives').MenuItemButton
+    } catch {
+      MenuItemButton = undefined
+    }
     const API = '/api/hongguo'
     const TAB_ID = 'dsh-hongguo'
     const KIND = 'hongguo'
@@ -1309,75 +1319,39 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** Foot button beside Settings: one click from anywhere into the player. */
-    function FooterButton(props) {
+    /**
+     * The manual entry: one row in the panel list's More menu. It is the only
+     * always-available entrance, so the sidebar foot stays free of a permanent
+     * button; close the menu first, then open the tab.
+     */
+    function MoreMenuRow({ onDismiss }) {
       const t = useTranslate()
-      const sidebar = pluginCtx?.get('sidebarRight')
-      const wide = props?.wide !== false
-      return h(
-        'button',
-        {
-          type: 'button',
-          className: 'hg-foot-action',
-          title: t('button.tooltip'),
-          'aria-label': t('button.tooltip'),
-          onClick: () => openDrama(pluginCtx),
+      const row = {
+        icon: h(Mark, { size: 16 }),
+        onSelect: () => {
+          try {
+            onDismiss?.()
+          } catch {
+            // A dismissed menu that already unmounted is fine.
+          }
+          openDrama(pluginCtx)
         },
-        h(Mark, { size: 16 }),
-        wide ? h('span', { className: 'hg-label' }, t('button.label')) : null,
-      )
+      }
+      const label = t('button.label')
+      return MenuItemButton
+        ? h(MenuItemButton, row, label)
+        : h('button', { type: 'button', className: 'hg-menu-row', onClick: row.onSelect }, label)
     }
 
     /**
-     * Ambient prompt for the drama player, rendered in the composer's dock.
-     *
-     * While the agent runs it offers the wait as viewing time; when the player
-     * is already docked on screen it turns into the player surface itself, so
-     * the drama stays visible underneath the conversation. `shouldHide` (a
-     * standard prop) is honoured because the dock also renders during read-only
-     * states, where this card would repeat what is already on screen.
+     * Headless dock watcher. The composer dock is the only seat that sees
+     * whether this session's agent is running, so the plugin keeps a seat
+     * there to pause a playing drama when a task finishes — but it renders
+     * nothing: no invitation card, no chips, no dismiss button.
      */
-    /** Dock entry: the prompt, isolated so a failure there never affects the tab. */
-    function DockPrompt(props) {
-      return h(Area, { name: 'dock', children: h(RunningPrompt, props) })
-    }
-
-    function RunningPrompt({ sessionId, useSessionStatus, shouldHide }) {
-      const t = useTranslate()
+    function DockWatcher({ sessionId, useSessionStatus }) {
       const status = useSessionStatus ? useSessionStatus((snapshot) => (sessionId ? snapshot.get(sessionId) : undefined)) : undefined
-      // No panel read here: outside its own panel the hook already collapses to
-      // an inert reader, and a throwing read must not take the card down.
-      const sidebar = pluginCtx?.get('sidebarRight')
-      const [dismissed, setDismissed] = React.useState(false)
-      const [docked, setDocked] = React.useState(false)
-      const [picks, setPicks] = React.useState([])
-      const [busy, setBusy] = React.useState(false)
-      const [error, setError] = React.useState(undefined)
-
-      // Follow the column's own controllers: is the drama docked, and pumped.
-      React.useEffect(() => {
-        if (!sidebar) return undefined
-        // The controller's tab list spans every session, so it cannot tell
-        // whether *this* view shows the player. What is on screen can: a
-        // mounted, visible player in this page.
-        const read = () => {
-          const root = document.querySelector('.hg-root:not(.compact)')
-          const visible = Boolean(root && root.offsetParent !== null && root.getClientRects().length > 0)
-          setDocked(visible)
-        }
-        read()
-        const unsubscribe = sidebar.openTabs?.subscribe?.(read)
-        const timer = setInterval(read, 800)
-        return () => {
-          unsubscribe?.()
-          clearInterval(timer)
-        }
-      }, [sidebar])
-
       const running = status?.running === true
-
-      // A finished task pauses whatever was playing, and says so inside the
-      // player rather than as a message: the drama is the thing to resume.
       const wasRunning = React.useRef(false)
       React.useEffect(() => {
         if (running) {
@@ -1387,67 +1361,7 @@ window.__ModuleLoader__.load({
           pauseAllDramas()
         }
       }, [running])
-
-      // A quick pick list, only while an invitation could actually be shown.
-      React.useEffect(() => {
-        if (!running || docked || dismissed) return undefined
-        fetchFeed(false)
-          .then((items) => {
-            if (items.length > 0) setPicks(items.slice(0, 3))
-          })
-          .catch(() => {})
-      }, [running, docked, dismissed])
-
-      // The dock also renders during read-only states; the card must not.
-      if (typeof shouldHide === 'function' && shouldHide()) return null
-      if (dismissed) return null
-      // Only while the agent works: the wait is what the drama fills.
-      if (!running) return null
-      // The player is already on screen: nothing to invite.
-      if (docked) return null
-      // The invitation: one line of copy, up to three dramas to start now, and
-      // the way into the full player.
-      return h(
-        'div',
-        { className: 'hg-prompt', role: 'status' },
-        h(
-          'div',
-          { className: 'hg-prompt-body' },
-          h('div', { className: 'hg-prompt-title' }, t('prompt.title')),
-          error ? h('div', { className: 'hg-prompt-hint' }, t('player.error').replace('{message}', error)) : null,
-          h(
-            'div',
-            { className: 'hg-picks' },
-            picks.map((item) => h('button', { key: item.id, type: 'button', className: 'hg-pick', onClick: () => pick(item) }, item.title ?? item.id)),
-            h('button', { type: 'button', className: 'hg-pick more', onClick: openAll }, t('player.more')),
-          ),
-        ),
-        h(
-          'div',
-          { className: 'hg-prompt-actions' },
-          h('button', { type: 'button', className: 'hg-dismiss', 'aria-label': t('prompt.dismiss'), onClick: () => setDismissed(true) }, '\u00d7'),
-        ),
-      )
-
-      /** Open the player on its list. */
-      function openAll() {
-        openDrama(pluginCtx)
-        setDismissed(true)
-      }
-
-      async function pick(item) {
-        if (busy) return
-        setBusy(true)
-        setError(undefined)
-        try {
-          openDrama(pluginCtx, { series: { id: item.id, title: item.title } })
-          setDismissed(true)
-        } catch (caught) {
-          setError(caught?.message ?? String(caught))
-        } finally {
-          setBusy(false)
-        }
-      }
+      return null
     }
 
     return {
@@ -1524,13 +1438,15 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('sidebar.right.pane.tab', () => {
             return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: TAB_ID }, PlayerBody)
         })
-        ctx.slots.inject('sidebar.footer.action', () =>
-          ctx.slots.register({ name: 'sidebar.footer.action', id: 'hongguo', order: 10, label: () => translate('button.label') }, FooterButton),
+        // The one manual entrance: a row in the panel list's More menu. The
+        // sidebar foot and the composer dock stay free of permanent furniture.
+        ctx.slots.inject('sidebar.panellist.actions', () =>
+          ctx.slots.register({ name: 'sidebar.panellist.actions', id: TAB_ID, order: 10 }, MoreMenuRow),
         )
-        // Above the composer card, not below it: the invitation belongs with
-        // the input, where the user is already looking while the agent works.
+        // Headless seat in the composer dock: it keeps observing the session so
+        // a finished task can pause a playing drama, and draws nothing.
         ctx.slots.inject('conversation.input.dock', () =>
-          ctx.slots.register({ name: 'conversation.input.dock', id: 'hongguo-prompt', order: 30 }, DockPrompt),
+          ctx.slots.register({ name: 'conversation.input.dock', id: 'hongguo-watch', order: 30 }, DockWatcher),
         )
       },
     }

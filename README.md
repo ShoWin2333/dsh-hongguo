@@ -1,8 +1,14 @@
-# dsh-hongguo
+# dsh-hongguo（个人 fork）
 
-摸鱼短剧：一个 DSH 插件，在右侧边栏里播一部短剧，Agent 干活的时候提示你把它调出来。
+摸鱼短剧：一个 DSH 插件，在右侧边栏里播一部短剧。
 
-数据来自 [openhongguo](https://github.com/beilunyang/openhongguo)（第三方短剧平台的非官方 SDK，匿名设备、无需登录）。请仅用于个人学习与研究，内容版权归权利人所有。
+这是 [frostming/dsh-hongguo](https://github.com/frostming/dsh-hongguo) 的个人 fork，代码与上游同源，改动集中在我们自己用起来不顺手的地方，细节见 [FORK-NOTES.md](FORK-NOTES.md)：
+
+- **入口**：去掉左侧栏底部的按钮，改到「全局面板 → 更多 → 短剧」一行；右侧边栏标签页与引导卡不变。
+- **去掉输入框上方的等待提示浮条**，但保留「任务结束自动暂停正在播的短剧」。
+- **Windows 封面**：上游用 macOS 的 `sips` 转 HEIC 封面，fork 在非 macOS 上改用 WIC（`cover.ps1`），需要系统装了 HEIF 图像扩展。
+
+数据来自 [openhongguo](https://github.com/beilunyang/openhongguo)（第三方短剧平台的非官方 SDK，匿名设备、无需登录）。请仅用于个人学习与研究，内容版权归权利人所有。上游仓库未声明 LICENSE，本 fork 仅原样保存并注明来源。
 
 ## 截图
 
@@ -14,33 +20,46 @@
 
 ![播放器](docs/player.png)
 
-**等待提示**：Agent 运行时在输入框上方出现，点剧名直接开播，`更多…` 打开播放器。
-
-![等待提示](docs/prompt.png)
-
 ## 功能
 
 | 位置 | 内容 |
 |---|---|
+| 入口 | 左侧栏「全局面板 → 更多」菜单里的 `短剧` 一行（同一菜单里还有「浏览更多插件」「创建你的插件」） |
 | 右侧边栏 | `摸鱼短剧` 标签页：推荐卡片 + 剧集列表（带封面、可搜索）→ 分集 → 播放器 |
 | 剧集列表 | 按面板宽度自适应：每行 6 / 4 / 3 / 2 部，每页 12 部，`换一批` 翻到下一页 |
 | 播放历史 | 记住每部剧看到第几集、第几秒；`观看历史` 按钮点开后一键续播，可单条移除 |
 | 播放器 | 画面内控制条、倍速（1–2×）、全屏、自动连播下一集、续播提示 |
-| 左侧栏底部 | `短剧` 按钮，一键打开播放器 |
-| 输入框上方 | Agent 运行时出现浮框：3 部剧可直接点开，`更多…` 打开播放器；当前页面已显示播放器时不出现 |
-| 任务完成 | Agent 从运行变为空闲时自动暂停正在播放的短剧，并在画面上提示 |
+| 任务完成 | Agent 从运行变为空闲时自动暂停正在播放的短剧，并在画面上提示（隐藏的 dock watcher 负责，不再有可见浮条） |
 | 侧边栏引导页 | 一个 `摸鱼短剧` 入口卡片 |
 
 ## 结构
 
-- **Host 半（`index.js`）**：加载 openhongguo SDK、维护匿名设备档案，提供同源路由 `/api/hongguo/{feed,series,play,media,stream,config,running}`、`/api/hongguo/cover` 与 `/api/hongguo/vendor`。启动时预先拉取剧集列表。CDN 只提供 HEIC 封面，Host 用 macOS 的 `sips` 转成 JPEG 并缓存。
-- **Client 半（`client.js`）**：注册侧边栏标签页类型 `hongguo`、侧栏底部按钮，以及 `conversation.input.dock` 里的等待提示。
+- **Host 半（`index.js`）**：加载 openhongguo SDK、维护匿名设备档案，提供同源路由 `/api/hongguo/{feed,series,play,media,stream,config,running}`、`/api/hongguo/cover` 与 `/api/hongguo/vendor`。启动时预先拉取剧集列表。CDN 只提供 HEIC 封面：macOS 用 `sips` 转 JPEG，其它平台用 `cover.ps1`（WIC / HEIF 图像扩展）转换并缓存。
+- **Client 半（`client.js`）**：注册侧边栏标签页类型 `hongguo`、`sidebar.panellist.actions` 里的 More 菜单行，以及 `conversation.input.dock` 里一个不渲染任何内容的 watcher。
 
 ## 播放与解密
 
 视频是 CENC（cenc-aes-ctr）加密的 HEVC，浏览器无法直接解码。Host 用 SDK 解析出的内容密钥调用本机 `ffmpeg` 解密并重封装为普通 MP4（`-c copy`，不重编码），缓存在插件数据目录 `media/`（保留最近 40 集）。页面只拿到同源 `/api/hongguo/media` 地址，密钥不出 Host。
 
-需要安装 ffmpeg：`brew install ffmpeg`。
+需要安装 ffmpeg：
+
+```powershell
+winget install Gyan.FFmpeg      # Windows
+brew install ffmpeg             # macOS
+```
+
+macOS 下封面走系统 `sips`，无需额外组件；Windows 下 HEIC 封面需要系统已安装 HEIF 图像扩展（Microsoft Store 的「HEIF 图像扩展」，多数系统自带）。
+
+## 构建与安装
+
+本 fork 没有发布到 npm，按本地包安装：
+
+```powershell
+cd dsh-hongguo-fork
+./build.ps1     # npm install（bundle openhongguo）→ npm pack → 复制到 %USERPROFILE%\.dsh\profiles\desktop\
+```
+
+然后在 DSH 的插件管理器里安装 `file:./dsh-hongguo-<version>.tgz`，它会热加载插件。
 
 ## 配置
 
@@ -48,7 +67,7 @@
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
-| `autoPrompt` | `true` | Agent 运行时是否显示提示 |
+| `autoPrompt` | `true` | 仅为兼容保留，本 fork 不再显示等待提示，无可见效果 |
 | `panelWidth` | `480` | 播放器标签页的默认宽度（px） |
 | `profilePath` | 插件数据目录 | 匿名设备档案文件；删除即更换设备 |
 | `searchTerms` | `总裁/重生/逆袭` | 推荐不足时补充列表用的搜索词 |

@@ -74,6 +74,26 @@ const STREAM_PREFERENCE = ['hls', 'dash', 'file']
 /** Convert one image with macOS `sips` (HEIC is what the CDN publishes). */
 const sips = promisify(execFile).bind(null, 'sips')
 
+/**
+ * Windows fallback: the CDN publishes HEIC, which only macOS decodes with
+ * `sips`. Windows reaches the same codecs through WIC (the HEIF Image
+ * Extension), so a small PowerShell script converts and downscales a poster.
+ */
+const COVER_PS1 = fileURLToPath(new URL('./cover.ps1', import.meta.url))
+
+/** Turn one source image into a JPEG of at most `width` px, on any platform. */
+async function convertCover(input, output, width) {
+  if (process.platform === 'win32') {
+    await promisify(execFile)(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', COVER_PS1, input, output, String(width)],
+      { timeout: 30_000 },
+    )
+    return
+  }
+  await sips(['-s', 'format', 'jpeg', '-s', 'formatOptions', '70', '--resampleWidth', String(width), input, '--out', output])
+}
+
 /** A profile store on one JSON file, 0600 like the SDK's own file store. */
 function fileProfileStore(path) {
   return {
@@ -433,7 +453,7 @@ export function apply(ctx, config = {}) {
     try {
       await mkdir(coverDir, { recursive: true, mode: 0o700 })
       await writeFile(rawPath, bytes)
-      await sips(['-s', 'format', 'jpeg', '-s', 'formatOptions', '70', '--resampleWidth', '240', rawPath, '--out', join(coverDir, outPath)])
+      await convertCover(rawPath, join(coverDir, outPath), 240)
       const converted = await readFile(cached)
       return sendJpeg(converted)
     } catch (error) {
