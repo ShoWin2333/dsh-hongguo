@@ -8,10 +8,9 @@ from the tarball built here.
 
 - The upstream repo assumes macOS: covers are HEIC and converted with `sips`; there is
   no Windows path. Without a fix every poster is a placeholder glyph.
-- The upstream entry points are intrusive and redundant for daily use: a permanent text
-  button in the sidebar foot (it crowds the Remote button), an invitation card above the
-  composer while the agent runs, and a duplicate entry card on the right sidebar's guide
-  page.
+- The upstream entry points are intrusive for daily use: a permanent text button in the
+  sidebar foot (it crowds the Remote button) and an invitation card above the composer
+  while the agent runs.
 - Installing straight from GitHub does not work here (schannel/TLS failures for `git` and
   `pnpm`; only the GitHub API is reachable from Node), so a local build/install step was
   needed anyway.
@@ -25,20 +24,16 @@ platform: macOS still uses `sips`; Windows runs `cover.ps1`, which decodes the H
 WIC (the Microsoft HEIF Image Extension) and re-encodes a 240 px JPEG at quality 70.
 Needs the HEIF Image Extension installed (`Microsoft.HEIFImageExtension`).
 
-### Entry point: one row in the left sidebar panel list (`client.js`)
+### Entry point: the right sidebar's guide box (`client.js`)
 
 - `sidebar.footer.action` registration removed — no permanent button, no truncated
   label beside Remote.
-- The panel-list More-menu row is gone as well; the entry is now a first-class row:
-  `sidebar.panellist` registration (order 45, label 摸鱼短剧) draws the icon in the
-  全局面板 list, and a keyed `main` registration provides the page that row selects.
-- That page (`LauncherPage`) opens the right Sidebar player and immediately calls
-  `ctx.layout.selectPanel(null)` to hand the centre back to the current Session, so
-  the row behaves like a button: one click opens the player beside the conversation
-  and the conversation stays where it was.
-- The right sidebar guide card is gone too: the tab type registers without `guide`,
-  so the right column only ever holds the player once the panel row opens it.
-  `sidebar.right.pane.tab` is unchanged (it is what draws the player).
+- The panel-list More-menu row and the left-sidebar panel-list row are gone as
+  well: nothing is registered in the left column.
+- The only entry is the right Sidebar guide box: the tab type registers `guide`
+  (title 摸鱼短剧, one description line), so opening the right column shows the
+  card on its 开始 page, and picking it opens the player tab. `sidebar.right.pane.tab`
+  is unchanged (it is what draws the player).
 
 ### Composer invitation removed (`client.js`)
 
