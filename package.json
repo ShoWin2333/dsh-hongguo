@@ -1,6 +1,6 @@
 {
   "name": "dsh-hongguo",
-  "version": "1.2.1-win.1",
+  "version": "1.3.0-win.2",
   "private": true,
   "type": "module",
   "description": "摸鱼短剧：右侧边栏短剧播放器，入口在左侧栏「全局面板 · 更多」菜单（本地 fork）",

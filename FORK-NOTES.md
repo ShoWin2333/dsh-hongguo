@@ -25,14 +25,19 @@ platform: macOS still uses `sips`; Windows runs `cover.ps1`, which decodes the H
 WIC (the Microsoft HEIF Image Extension) and re-encodes a 240 px JPEG at quality 70.
 Needs the HEIF Image Extension installed (`Microsoft.HEIFImageExtension`).
 
-### Entry point: the panel list's More menu (`client.js`)
+### Entry point: one row in the left sidebar panel list (`client.js`)
 
 - `sidebar.footer.action` registration removed — no permanent button, no truncated
   label beside Remote.
-- New `sidebar.panellist.actions` registration: one row 「短剧」 in the left sidebar's
-  全局面板 → 更多 menu, rendered with the product's own `MenuItemButton`.
+- The panel-list More-menu row is gone as well; the entry is now a first-class row:
+  `sidebar.panellist` registration (order 45, label 摸鱼短剧) draws the icon in the
+  全局面板 list, and a keyed `main` registration provides the page that row selects.
+- That page (`LauncherPage`) opens the right Sidebar player and immediately calls
+  `ctx.layout.selectPanel(null)` to hand the centre back to the current Session, so
+  the row behaves like a button: one click opens the player beside the conversation
+  and the conversation stays where it was.
 - The right sidebar guide card is gone too: the tab type registers without `guide`,
-  so the right column only ever holds the player once the menu row opens it.
+  so the right column only ever holds the player once the panel row opens it.
   `sidebar.right.pane.tab` is unchanged (it is what draws the player).
 
 ### Composer invitation removed (`client.js`)

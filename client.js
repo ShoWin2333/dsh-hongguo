@@ -2,27 +2,20 @@
  * dsh-hongguo — Client half.
  *
  * Registers one right-Sidebar tab type (`kind: 'hongguo'`) that plays a
- * short drama, and one row in the left sidebar's panel-list More menu that
- * opens it. All network work — search, episodes, play models — stays in the
- * Host half; this module only calls the same-origin routes it serves.
+ * short drama, and one row in the left sidebar's panel list that opens it.
+ * All network work — search, episodes, play models — stays in the Host half;
+ * this module only calls the same-origin routes it serves.
  *
- * Local fork (see FORK-NOTES.md): the foot action and the composer dock card
- * are gone — the More menu row is the only entry, and nothing is registered in
- * the composer at all, so a finished task no longer touches playback.
+ * Local fork (see FORK-NOTES.md): the foot action, the composer dock card and
+ * the More-menu row are gone — the panel-list row below is the only entry, and
+ * nothing is registered in the composer at all, so a finished task no longer
+ * touches playback.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-hongguo',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    // The More-menu row uses the product's own menu row so it joins the menu's
-    // keyboard walk and styling; without primitives it still works.
-    let MenuItemButton
-    try {
-      MenuItemButton = require('@deepseek-ai/dsh-client-ui-primitives').MenuItemButton
-    } catch {
-      MenuItemButton = undefined
-    }
     const API = '/api/hongguo'
     const TAB_ID = 'dsh-hongguo'
     const KIND = 'hongguo'
@@ -30,8 +23,8 @@ window.__ModuleLoader__.load({
 
     const zh = {
       'tab.title': '摸鱼短剧',
-      'button.label': '短剧',
-      'button.tooltip': '打开摸鱼短剧',
+      'launcher.hint': '播放器已在右侧栏打开。这一页只是入口，点上面的会话就能回去继续。',
+      'launcher.open': '打开右侧栏',
       'player.refresh': '换一批',
       'player.more': '更多…',
       'player.back': '返回列表',
@@ -73,8 +66,8 @@ window.__ModuleLoader__.load({
     }
     const en = {
       'tab.title': 'Drama Break',
-      'button.label': 'Drama',
-      'button.tooltip': 'Open Drama Break',
+      'launcher.hint': 'The player opened in the right Sidebar. This page is only the entry point — pick a session above to go back.',
+      'launcher.open': 'Open the right Sidebar',
       'player.refresh': 'Refresh',
       'player.more': 'More…',
       'player.back': 'Back to list',
@@ -242,10 +235,13 @@ window.__ModuleLoader__.load({
 
 .hg-pick{appearance:none;display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 9px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:11px;cursor:pointer;}
 .hg-pick:hover{border-color:var(--dsw-alias-brand-primary);}
+.hg-launch{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:100%;padding:32px;box-sizing:border-box;text-align:center;color:var(--dsw-alias-label-primary);}
+.hg-launch-title{font-size:16px;font-weight:600;}
+.hg-launch-text{max-width:360px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary);}
 @keyframes hg-pulse{0%,100%{opacity:1}50%{opacity:.25}}
 `
 
-    /** Decorative mark shared by the tab and the More-menu row. */
+    /** Decorative mark shared by the tab, the panel row and the launcher page. */
     /** Small line icons for the player chrome. */
     function Icon({ name, size = 16 }) {
       const paths = {
@@ -1192,6 +1188,8 @@ window.__ModuleLoader__.load({
 
     /** The plugin context, so component handlers reach the sidebar controller. */
     let pluginCtx
+    /** Layout face, when the profile has one: hands the centre back to the Session. */
+    let layout
 
     /**
      * Tell the Host which drama this page is showing. Nothing waits on it: the
@@ -1218,27 +1216,50 @@ window.__ModuleLoader__.load({
 
 
     /**
-     * The manual entry: one row in the panel list's More menu. It is the only
-     * entrance, so the sidebar foot stays free of a permanent button; close the
-     * menu first, then open the tab.
+     * The row's glyph in the left sidebar's panel list. The list asks for a
+     * size (16px wide, 18px in the collapsed rail) and whether the panel is
+     * selected; the mark draws at whatever edge it is given.
      */
-    function MoreMenuRow({ onDismiss }) {
+    function PanelIcon({ size = 18 }) {
+      return h(Mark, { size })
+    }
+
+    /**
+     * The main-area page the panel row selects. The player belongs beside the
+     * conversation, not in the centre, so this page hands the centre straight
+     * back to the current Session and then opens the right Sidebar tab — in
+     * that order, because the right column rebinds to the Session view when the
+     * centre returns, and a tab opened before that would land in the wrong
+     * view. It only draws a fallback when the layout service is unavailable.
+     */
+    function LauncherPage() {
       const t = useTranslate()
-      const row = {
-        icon: h(Mark, { size: 16 }),
-        onSelect: () => {
-          try {
-            onDismiss?.()
-          } catch {
-            // A dismissed menu that already unmounted is fine.
-          }
-          openDrama(pluginCtx)
-        },
-      }
-      const label = t('button.label')
-      return MenuItemButton
-        ? h(MenuItemButton, row, label)
-        : h('button', { type: 'button', className: 'hg-menu-row', onClick: row.onSelect }, label)
+      const [failed, setFailed] = React.useState(false)
+      React.useEffect(() => {
+        if (!layout?.selectPanel) {
+          setFailed(true)
+          return undefined
+        }
+        try {
+          layout.selectPanel(null)
+        } catch {
+          setFailed(true)
+          return undefined
+        }
+        // Not cleared on unmount: this page is gone by the time the beat ends,
+        // and the tab still has to open in the view it handed back to.
+        setTimeout(() => openDrama(pluginCtx), 80)
+        return undefined
+      }, [])
+      if (!failed) return null
+      return h(
+        'div',
+        { className: 'hg-launch' },
+        h(Mark, { size: 40 }),
+        h('div', { className: 'hg-launch-title' }, t('tab.title')),
+        h('div', { className: 'hg-launch-text' }, t('launcher.hint')),
+        h('button', { type: 'button', className: 'hg-btn primary', onClick: () => openDrama(pluginCtx) }, t('launcher.open')),
+      )
     }
 
     return {
@@ -1248,6 +1269,16 @@ window.__ModuleLoader__.load({
       inject: ['slots', 'locale', 'sidebarRight', 'sidebarRightTabs'],
       apply(ctx) {
         pluginCtx = ctx
+        // Selected lazily: the panel row hands the centre back through this
+        // face, and a profile without the layout frame simply keeps the page.
+        ctx.inject(['layout'], (scope) => {
+          scope.effect(() => {
+            layout = scope.layout
+            return () => {
+              layout = undefined
+            }
+          }, 'hongguo: layout face')
+        })
         const locale = ctx.get('locale')
         localeRef.current = locale
         if (locale) {
@@ -1306,10 +1337,18 @@ window.__ModuleLoader__.load({
         ctx.slots.inject('sidebar.right.pane.tab', () => {
             return ctx.slots.register({ name: 'sidebar.right.pane.tab', key: TAB_ID }, PlayerBody)
         })
-        // The one manual entrance: a row in the panel list's More menu. The
-        // sidebar foot and the composer stay free of permanent furniture.
-        ctx.slots.inject('sidebar.panellist.actions', () =>
-          ctx.slots.register({ name: 'sidebar.panellist.actions', id: TAB_ID, order: 10 }, MoreMenuRow),
+        // The one entrance: a row in the left sidebar's panel list, the same
+        // shape the workbench panels use. Picking it selects its main-area
+        // page, which hands the centre straight back to the Session after
+        // opening the player, so the row behaves like a button.
+        ctx.slots.inject('sidebar.panellist', () =>
+          ctx.slots.register(
+            { name: 'sidebar.panellist', id: TAB_ID, order: 45, label: () => translate('tab.title') },
+            PanelIcon,
+          ),
+        )
+        ctx.slots.inject('main', () =>
+          ctx.slots.register({ name: 'main', key: TAB_ID }, LauncherPage),
         )
       },
     }
